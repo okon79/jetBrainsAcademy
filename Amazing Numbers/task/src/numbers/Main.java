@@ -1,37 +1,60 @@
 package numbers;
 
-import java.util.Scanner;
+import java.util.*;
+import java.util.function.LongPredicate;
 
 public class Main {
+    public static int status;
     private static long number;
-    private static int parameter;
-    private static boolean isParameterEntered;
-    private static boolean isEven;
-    private static boolean isBuzz;
-    private static boolean isDuck;
-    private static boolean isPalindromic;
-    private static boolean isGapful;
+    private static int secondNumber;
+    private static final String avParams = "[EVEN, ODD, BUZZ, DUCK, PALINDROMIC, GAPFUL, SPY, SQUARE, SUNNY, JUMPING]";
+    private static String[] parameters;
+    private static HashMap<String, Boolean> results;
+    private static boolean isSecondNumberEntered;
+    private static int noOfParams;
 
     public static void main(String[] args) {
 
+        status = 1;
+
         System.out.println("Welcome to Amazing Numbers!");
         printInstructions();
-        getNumbers();
 
-        while (number > 0) {
-            if (isParameterEntered) {
-                for (long i = number; i < number + parameter; i++) {
-                    checkProperties(i);
+        while (status > 0) {
+
+            status = getNumbers();
+
+            if (status == 0) {
+                break;
+            }
+
+            if (status == 1) {
+                printInstructions();
+            }
+
+            if (noOfParams == 0 && !isSecondNumberEntered && status > 2) {
+                printPropertiesOne();
+
+            } else if (noOfParams == 0 && isSecondNumberEntered && status > 2) {
+                for (long i = number; i < number + secondNumber; i++) {
                     printPropertiesMore(i);
                 }
                 System.out.println("\n");
-            } else {
-                checkProperties(number);
-                printPropertiesOne();
+
+            } else if (noOfParams > 0 && isSecondNumberEntered && status > 2) {
+                int success = 0;
+                while (success < secondNumber) {
+                    if (processParam(parameters)) {
+                        success++;
+                    }
+                    number++;
+                }
+                System.out.println("\n");
             }
-            getNumbers();
         }
+
         System.out.println("\nGoodbye!");
+
     }
 
     private static void printInstructions() {
@@ -40,61 +63,100 @@ public class Main {
                 "- enter two natural numbers to obtain the properties of the list:\n" +
                 "  * the first parameter represents a starting number;\n" +
                 "  * the second parameter shows how many consecutive numbers are to be printed;\n" +
+                "- two natural numbers and a property to search for;\n" +
+                "- two natural numbers and two properties to search for;\n" +
                 "- separate the parameters with one space;\n" +
                 "- enter 0 to exit.\n");
     }
 
-    private static void getNumbers() {
+    private static int getNumbers() {
+
+        noOfParams = 0;
+        isSecondNumberEntered = false;
+
         System.out.print("Enter a request: ");
         Scanner scanner = new Scanner(System.in);
         String input = scanner.nextLine();
 
         if (input.length() == 0) {
-            printInstructions();
-            getNumbers();
-        } else if (input.contains(" ")) {
-            String[] inputParts = input.split(" ");
+            return 1;
+        }
+
+        String[] inputParts = input.split(" ");
+        StringBuilder errParList = new StringBuilder();
+
+        if (inputParts.length >= 1) {
             try {
                 number = Long.parseLong(inputParts[0]);
             } catch (Exception e) {
                 System.out.println("\nThe first parameter should be a natural number or zero.\n");
-                getNumbers();
-            }
-            try {
-                parameter = Integer.parseInt(inputParts[1]);
-            } catch (Exception e) {
-                System.out.println("\nThe second parameter should be a natural number.\n");
-                getNumbers();
-            }
-
-            isParameterEntered = true;
-
-            if (number < 0 && parameter < 0) {
-                System.out.println("\nThe first parameter should be a natural number or zero.");
-                System.out.println("\nThe second parameter should be a natural number.\n");
-                getNumbers();
-            } else if (number < 0) {
-                System.out.println("\nThe first parameter should be a natural number or zero.\n");
-                getNumbers();
-            } else if (parameter < 0) {
-                System.out.println("\nThe second parameter should be a natural number.\n");
-                getNumbers();
-            }
-
-        } else {
-            try {
-                number = Long.parseLong(input);
-                isParameterEntered = false;
-            } catch (Exception e) {
-                System.out.println("\nThe first parameter should be a natural number or zero.\n");
-                getNumbers();
+                return 2;
             }
             if (number < 0) {
                 System.out.println("\nThe first parameter should be a natural number or zero.\n");
-                getNumbers();
+                return 2;
+            } else if (number == 0) {
+                return 0;
             }
         }
+
+        if (inputParts.length >= 2) {
+            try {
+                secondNumber = Integer.parseInt(inputParts[1]);
+            } catch (Exception e) {
+                System.out.println("\nThe second parameter should be a natural number.\n");
+                return 2;
+            }
+            if (secondNumber <= 0) {
+                System.out.println("\nThe second parameter should be a natural number.\n");
+                return 2;
+            }
+            isSecondNumberEntered = true;
+        }
+
+        int noOfErrors = 0;
+
+        if (inputParts.length >= 3) {
+            parameters = new String[inputParts.length - 2];
+            for (int i = 2; i < inputParts.length; i++) {
+                if (!avParams.contains(inputParts[i].toUpperCase())) {
+                    errParList.append(inputParts[i].toUpperCase() + ", ");
+                    noOfErrors++;
+                }
+                parameters[i - 2] = inputParts[i].toUpperCase();
+                noOfParams++;
+            }
+        }
+
+        if (noOfErrors == 1) {
+            System.out.println("The property [" + errParList + "] is wrong.");
+            System.out.println("Available properties: " + avParams + "\n");
+            return 2;
+        } else if (noOfErrors > 1) {
+            System.out.println("The properties [" + errParList + "] are wrong.");
+            System.out.println("Available properties: " + avParams + "\n");
+            return 2;
+        }
+
+        if (parameters != null) {
+            String stringOfParameters = String.join(" ", parameters);
+            if (stringOfParameters.contains("ODD") && stringOfParameters.contains("EVEN")) {
+                System.out.println("\nThe request contains mutually exclusive properties: [EVEN, ODD]\n" +
+                        "There are no numbers with these properties.\n");
+                return 2;
+            } else if (stringOfParameters.contains("SQUARE") && stringOfParameters.contains("SUNNY")) {
+                System.out.println("\nThe request contains mutually exclusive properties: [SQUARE, SUNNY]\n" +
+                        "There are no numbers with these properties.\n");
+                return 2;
+            } else if (stringOfParameters.contains("SPY") && stringOfParameters.contains("DUCK")) {
+                System.out.println("\nThe request contains mutually exclusive properties: [SPY, DUCK]\n" +
+                        "There are no numbers with these properties.\n");
+                return 2;
+            }
+        }
+        return 3;
     }
+
 
     private static boolean isEven(long number) {
         return number % 2 == 0;
@@ -142,42 +204,144 @@ public class Main {
         int lastDig = Character.getNumericValue(numberStr.charAt(len - 1));
         int divider = (firstDig * 10) + lastDig;
 
-        if (number % divider == 0) {
-            return true;
+        return number % divider == 0;
+    }
+
+    private static boolean isSpy(long number) {
+        String numberStr = String.valueOf(number);
+        int length = numberStr.length();
+        int sum = 0;
+        int product = 1;
+
+        for (int i = 0; i < length; i++) {
+            sum += Character.getNumericValue(numberStr.charAt(i));
+            product *= Character.getNumericValue(numberStr.charAt(i));
+        }
+
+        return sum == product;
+    }
+
+    private  static boolean isSquare(long number) {
+        double sqr = Math.sqrt((double) number);
+        return sqr == (int) sqr;
+    }
+
+    private static boolean isSunny(long number) {
+        return isSquare(++number);
+    }
+
+    private static boolean isJumping(long number) {
+        String numberStr = String.valueOf(number);
+        for (int i = 0; i < numberStr.length() - 1; i++) {
+            if (Math.abs((long) numberStr.charAt(i) - (long) numberStr.charAt(i + 1)) != 1) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean processParam(String[] params) {
+
+        results = new HashMap<>();
+        results.clear();
+
+        for (String parameter : params) {
+            switch (parameter) {
+                case "EVEN":
+                    if (isEven(number)) {
+                        results.put("EVEN", true);
+                    }
+                    break;
+                case "ODD":
+                    if (!isEven(number)) {
+                        results.put("ODD", true);
+                    }
+                    break;
+                case "BUZZ":
+                    if (isBuzz(number)) {
+                        results.put("BUZZ", true);
+                    }
+                    break;
+                case "DUCK":
+                    if (isDuck(number)) {
+                        results.put("DUCK", true);
+                    }
+                    break;
+                case "PALINDROMIC":
+                    if (isPalindromic(number)) {
+                        results.put("PALINDROMIC", true);
+                    }
+                    break;
+                case "GAPFUL":
+                    if (isGapful(number)) {
+                        results.put("GAPFUL", true);
+                    }
+                    break;
+                case "SPY":
+                    if (isSpy(number)) {
+                        results.put("SPY", true);
+                    }
+                    break;
+                case "SQUARE":
+                    if (isSquare(number)) {
+                        results.put("SQUARE", true);
+                    }
+                    break;
+                case "SUNNY":
+                    if (isSunny(number)) {
+                        results.put("SUNNY", true);
+                    }
+                    break;
+                case "JUMPING":
+                    if (isJumping(number)) {
+                        results.put("JUMPING", true);
+                    }
+                    break;
+                default:
+                    System.out.println("Wrong Case");
+                    return false;
+            }
+        }
+
+        int numOfParams = params.length;
+        int numOfResults = results.size();
+        if (numOfResults == numOfParams) {
+            printPropertiesMore(number);
         } else {
             return false;
         }
-    }
-
-    private static void checkProperties(long num) {
-        isEven = isEven(num);
-        isBuzz = isBuzz(num);
-        isDuck = isDuck(num);
-        isPalindromic = isPalindromic(num);
-        isGapful = isGapful(num);
+        return true;
     }
 
     private static void printPropertiesOne() {
         System.out.println("\nProperties of " + number);
-        System.out.println("\t\teven: " + isEven);
-        System.out.println("\t\t odd: " + !isEven);
-        System.out.println("\t\tbuzz: " + isBuzz);
-        System.out.println("\t\tduck: " + isDuck);
-        System.out.println(" palindromic: " + isPalindromic);
-        System.out.println("\t  gapful: " + isGapful);
+        System.out.println("\t\teven: " + isEven(number));
+        System.out.println("\t\t odd: " + !isEven(number));
+        System.out.println("\t\tbuzz: " + isBuzz(number));
+        System.out.println("\t\tduck: " + isDuck(number));
+        System.out.println(" palindromic: " + isPalindromic(number));
+        System.out.println("\t  gapful: " + isGapful(number));
+        System.out.println("\t\t spy: " + isSpy(number));
+        System.out.println("\t  square: " + isSquare(number));
+        System.out.println("\t   sunny: " + isSunny(number));
+        System.out.println("\t jumping: " + isJumping(number));
         System.out.println("");
     }
 
-    private static void printPropertiesMore(long i) {
-        System.out.print("\n" + i + " is");
-        if (isEven) {
+    private static void printPropertiesMore(long num) {
+        System.out.print("\n" + num + " is");
+        if (isEven(num)) {
             System.out.print(" even");
         } else {
             System.out.print(" odd");
         }
-        if (isBuzz) System.out.print(", buzz");
-        if (isDuck) System.out.print(", duck");
-        if (isPalindromic) System.out.print(", palindromic");
-        if (isGapful) System.out.print(", gapful");
+        if (isBuzz(num)) System.out.print(", buzz");
+        if (isDuck(num)) System.out.print(", duck");
+        if (isPalindromic(num)) System.out.print(", palindromic");
+        if (isGapful(num)) System.out.print(", gapful");
+        if (isSpy(num)) System.out.print(", spy");
+        if (isSquare(num)) System.out.print(", square");
+        if (isSunny(num)) System.out.print(", sunny");
+        if (isJumping(num)) System.out.print(", jumping");
     }
 }
