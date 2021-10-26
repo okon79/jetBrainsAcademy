@@ -1,15 +1,13 @@
 package numbers;
 
 import java.util.*;
-import java.util.function.LongPredicate;
 
 public class Main {
     public static int status;
     private static long number;
     private static int secondNumber;
-    private static final String avParams = "[EVEN, ODD, BUZZ, DUCK, PALINDROMIC, GAPFUL, SPY, SQUARE, SUNNY, JUMPING]";
+    private static final String avParams = "[EVEN, ODD, BUZZ, DUCK, PALINDROMIC, GAPFUL, SPY, SQUARE, SUNNY, JUMPING, HAPPY, SAD]";
     private static String[] parameters;
-    private static HashMap<String, Boolean> results;
     private static boolean isSecondNumberEntered;
     private static int noOfParams;
 
@@ -63,8 +61,8 @@ public class Main {
                 "- enter two natural numbers to obtain the properties of the list:\n" +
                 "  * the first parameter represents a starting number;\n" +
                 "  * the second parameter shows how many consecutive numbers are to be printed;\n" +
-                "- two natural numbers and a property to search for;\n" +
-                "- two natural numbers and two properties to search for;\n" +
+                "- two natural numbers and a properties to search for;\n" +
+                "- a property preceded by minus must not be present in numbers;\n" +
                 "- separate the parameters with one space;\n" +
                 "- enter 0 to exit.\n");
     }
@@ -119,8 +117,20 @@ public class Main {
         if (inputParts.length >= 3) {
             parameters = new String[inputParts.length - 2];
             for (int i = 2; i < inputParts.length; i++) {
-                if (!avParams.contains(inputParts[i].toUpperCase())) {
-                    errParList.append(inputParts[i].toUpperCase() + ", ");
+
+                String checkIfContains = "";
+
+                if (inputParts[i].startsWith("-")) {
+                    checkIfContains = inputParts[i].toUpperCase().replace("-", "");
+                } else {
+                    checkIfContains = inputParts[i].toUpperCase();
+                }
+
+                if (!avParams.contains(checkIfContains) && noOfErrors == 0) {
+                    errParList.append(inputParts[i].toUpperCase());
+                    noOfErrors++;
+                } else if (!avParams.contains(checkIfContains) && noOfErrors > 0) {
+                    errParList.append(", " + inputParts[i].toUpperCase());
                     noOfErrors++;
                 }
                 parameters[i - 2] = inputParts[i].toUpperCase();
@@ -138,22 +148,54 @@ public class Main {
             return 2;
         }
 
-        if (parameters != null) {
-            String stringOfParameters = String.join(" ", parameters);
-            if (stringOfParameters.contains("ODD") && stringOfParameters.contains("EVEN")) {
+        if (noOfParams >= 2) {
+
+            ArrayList<String> checkInputList = new ArrayList<>();
+            String inParPos = "";
+            String inParNeg = "";
+
+            for (String inpPar : parameters) {
+                if (!checkInputList.contains(inpPar)) {
+                    checkInputList.add(inpPar);
+                }
+
+                inParNeg = inpPar.contains("-") ? inpPar : "-" + inpPar;
+                inParPos = inpPar.contains("-") ? inpPar.replace("-","") : inpPar;
+
+                if (inpPar.contains("-") && checkInputList.contains(inParPos)) {
+                    System.out.println("\nThe request contains mutually exclusive properties: [" + inParPos + ", " + inParNeg + "]\n" +
+                            "There are no numbers with these properties.\n");
+                    return 2;
+                } else if (!inpPar.contains("-") && checkInputList.contains(inParNeg)) {
+                    System.out.println("\nThe request contains mutually exclusive properties: [" + inParPos + ", " + inParNeg + "]\n" +
+                            "There are no numbers with these properties.\n");
+                    return 2;
+                }
+            }
+
+            if (checkInputList.contains("ODD") && checkInputList.contains("EVEN")) {
                 System.out.println("\nThe request contains mutually exclusive properties: [EVEN, ODD]\n" +
                         "There are no numbers with these properties.\n");
                 return 2;
-            } else if (stringOfParameters.contains("SQUARE") && stringOfParameters.contains("SUNNY")) {
+            } else if (checkInputList.contains("-ODD") && checkInputList.contains("-EVEN")) {
+                System.out.println("\nThe request contains mutually exclusive properties: [-EVEN, -ODD]\n" +
+                        "There are no numbers with these properties.\n");
+                return 2;
+            } else if (checkInputList.contains("SQUARE") && checkInputList.contains("SUNNY")) {
                 System.out.println("\nThe request contains mutually exclusive properties: [SQUARE, SUNNY]\n" +
                         "There are no numbers with these properties.\n");
                 return 2;
-            } else if (stringOfParameters.contains("SPY") && stringOfParameters.contains("DUCK")) {
+            } else if (checkInputList.contains("SPY") && checkInputList.contains("DUCK")) {
                 System.out.println("\nThe request contains mutually exclusive properties: [SPY, DUCK]\n" +
+                        "There are no numbers with these properties.\n");
+                return 2;
+            } else if (checkInputList.contains("HAPPY") && checkInputList.contains("SAD")) {
+                System.out.println("\nThe request contains mutually exclusive properties: [HAPPY, SAD]\n" +
                         "There are no numbers with these properties.\n");
                 return 2;
             }
         }
+
         return 3;
     }
 
@@ -240,61 +282,135 @@ public class Main {
         return true;
     }
 
+    private static boolean isHappy(long number) {
+
+        Long checkNumber = number;
+
+        while (checkNumber != 1) {
+
+            String num = String.valueOf(checkNumber);
+            Long[] tab = new Long[num.length()];
+
+            for (int i = 0; i < num.length(); i++) {
+                tab[i] = Long.parseLong(String.valueOf(num.charAt(i)));
+            }
+
+            long sum = 0;
+            for (Long val : tab) {
+                sum += Math.pow(val, 2);
+            }
+
+            checkNumber = sum;
+
+            if (checkNumber == 4) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean isSad(long number){
+        return !isHappy(number);
+    }
+
     private static boolean processParam(String[] params) {
 
-        results = new HashMap<>();
-        results.clear();
+        int results = 0;
+        boolean include;
 
         for (String parameter : params) {
+            if (parameter.startsWith("-")) {
+                parameter = parameter.replace("-","");
+                parameter = parameter.trim();
+                include = false;
+            } else {
+                include = true;
+            }
+
             switch (parameter) {
                 case "EVEN":
-                    if (isEven(number)) {
-                        results.put("EVEN", true);
+                    if (isEven(number) && include) {
+                        results++;
+                    } else if (!isEven(number) && !include) {
+                        results++;
                     }
                     break;
                 case "ODD":
-                    if (!isEven(number)) {
-                        results.put("ODD", true);
+                    if (!isEven(number) && include) {
+                        results++;
+                    } else if (isEven(number) && !include) {
+                        results++;
                     }
                     break;
                 case "BUZZ":
-                    if (isBuzz(number)) {
-                        results.put("BUZZ", true);
+                    if (isBuzz(number) && include) {
+                        results++;
+                    } else if (!isBuzz(number) && !include) {
+                        results++;
                     }
                     break;
                 case "DUCK":
-                    if (isDuck(number)) {
-                        results.put("DUCK", true);
+                    if (isDuck(number) && include) {
+                        results++;
+                    } else if (!isDuck(number) && !include) {
+                        results++;
                     }
                     break;
                 case "PALINDROMIC":
-                    if (isPalindromic(number)) {
-                        results.put("PALINDROMIC", true);
+                    if (isPalindromic(number) && include) {
+                        results++;
+                    } else if (!isPalindromic(number) && !include) {
+                        results++;
                     }
                     break;
                 case "GAPFUL":
-                    if (isGapful(number)) {
-                        results.put("GAPFUL", true);
+                    if (isGapful(number) && include) {
+                        results++;
+                    } else if (!isGapful(number) && !include) {
+                        results++;
                     }
                     break;
                 case "SPY":
-                    if (isSpy(number)) {
-                        results.put("SPY", true);
+                    if (isSpy(number) && include) {
+                        results++;
+                    } else if (!isSpy(number) && !include) {
+                        results++;
                     }
                     break;
                 case "SQUARE":
-                    if (isSquare(number)) {
-                        results.put("SQUARE", true);
+                    if (isSquare(number) && include) {
+                        results++;
+                    } else if (!isSquare(number) && !include) {
+                        results++;
                     }
                     break;
                 case "SUNNY":
-                    if (isSunny(number)) {
-                        results.put("SUNNY", true);
+                    if (isSunny(number) && include) {
+                        results++;
+                    } else if (!isSunny(number) && !include) {
+                        results++;
                     }
                     break;
                 case "JUMPING":
-                    if (isJumping(number)) {
-                        results.put("JUMPING", true);
+                    if (isJumping(number) && include) {
+                        results++;
+                    } else if (!isJumping(number) && !include) {
+                        results++;
+                    }
+                    break;
+                case "HAPPY":
+                    if (isHappy(number) && include) {
+                        results++;
+                    } else if (!isHappy(number) && !include) {
+                        results++;
+                    }
+                    break;
+                case "SAD":
+                    if (isSad(number) && include) {
+                        results++;
+                    } else if (!isSad(number) && !include) {
+                        results++;
                     }
                     break;
                 default:
@@ -304,8 +420,8 @@ public class Main {
         }
 
         int numOfParams = params.length;
-        int numOfResults = results.size();
-        if (numOfResults == numOfParams) {
+
+        if (results == numOfParams) {
             printPropertiesMore(number);
         } else {
             return false;
@@ -325,6 +441,8 @@ public class Main {
         System.out.println("\t  square: " + isSquare(number));
         System.out.println("\t   sunny: " + isSunny(number));
         System.out.println("\t jumping: " + isJumping(number));
+        System.out.println("\t   happy: " + isHappy(number));
+        System.out.println("\t\t sad: " + isSad(number));
         System.out.println("");
     }
 
@@ -343,5 +461,7 @@ public class Main {
         if (isSquare(num)) System.out.print(", square");
         if (isSunny(num)) System.out.print(", sunny");
         if (isJumping(num)) System.out.print(", jumping");
+        if (isHappy(num)) System.out.print(", happy");
+        if (isSad(num)) System.out.print(", sad");
     }
 }
